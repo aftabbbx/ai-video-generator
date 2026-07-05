@@ -161,6 +161,31 @@
                                 <input type="range" id="fps" min="4" max="16" value="8" step="1" oninput="document.getElementById('fps-val').innerText = this.value">
                             </div>
 
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="resolution">Resolution</label>
+                                </div>
+                                <div class="select-wrapper">
+                                    <select id="resolution">
+                                        <option value="256x256" selected>256 × 256 (M2 8GB Safe/Fast)</option>
+                                        <option value="384x384">384 × 384 (Medium)</option>
+                                        <option value="512x512">512 × 512 (Standard / High RAM)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="device">Inference Device</label>
+                                </div>
+                                <div class="select-wrapper">
+                                    <select id="device">
+                                        <option value="mps" selected>MPS (Apple Silicon GPU)</option>
+                                        <option value="cpu">CPU (Slow but safe)</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="setting-item full-width">
                                 <div class="setting-label-row">
                                     <label for="seed">Seed (reproducibility)</label>
@@ -268,7 +293,7 @@
                         </div>
                         <div class="metadata-item">
                             <span class="meta-label">Resolution</span>
-                            <span class="meta-value">512 × 512</span>
+                            <span class="meta-value" id="meta-resolution">512 × 512</span>
                         </div>
                         <div class="metadata-item">
                             <span class="meta-label">Frames / FPS</span>

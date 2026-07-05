@@ -204,6 +204,13 @@ async function handleGenerate(event) {
     formData.append('fps', document.getElementById('fps').value);
     formData.append('seed', document.getElementById('seed').value);
     
+    // Add resolution and device parameters
+    const resVal = document.getElementById('resolution').value;
+    const [width, height] = resVal.split('x');
+    formData.append('width', width);
+    formData.append('height', height);
+    formData.append('device', document.getElementById('device').value);
+    
     if (activeMode === 'text-to-video') {
         const promptText = document.getElementById('prompt').value.trim();
         const modelSelect = document.getElementById('model-select');
@@ -340,7 +347,7 @@ function updateProgressUI(data) {
         etaTime.innerText = 'estimating...';
     } else if (data.status === 'generating') {
         statusText.innerText = 'Denoising';
-        logMessage.innerText = `Performing Diffusion Steps on MPS device...`;
+        logMessage.innerText = `Performing Diffusion Steps on ${data.device ? data.device.toUpperCase() : 'MPS'} device...`;
         stepCount.innerText = `${data.step} / ${data.total_steps}`;
         etaTime.innerText = data.eta > 0 ? data.eta + 's' : 'calculating...';
     } else if (data.status === 'saving') {
@@ -547,6 +554,10 @@ function openLightbox(video) {
     metaFramesFps.innerText = `${video.frames} frames @ ${video.fps} FPS (${video.duration})`;
     metaGuidanceSteps.innerText = `${video.guidance_scale} scale / ${video.steps} steps`;
     metaSeed.innerText = video.seed;
+    
+    // Set dynamic resolution in lightbox
+    const resText = (video.width && video.height) ? `${video.width} × ${video.height}` : '512 × 512';
+    document.getElementById('meta-resolution').innerText = resText;
     
     downloadBtn.href = video.video_url;
     downloadBtn.download = video.filename;

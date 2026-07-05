@@ -55,7 +55,8 @@ progress_state = {
     "error": None,
     "elapsed": 0.0,
     "eta": 0.0,
-    "filename": None
+    "filename": None,
+    "device": "mps"
 }
 
 state_lock = threading.RLock()
@@ -75,7 +76,8 @@ def run_generation(params):
             error=None,
             filename=None,
             elapsed=0.0,
-            eta=0.0
+            eta=0.0,
+            device=params["device"]
         )
         
         # Instantiate/get generator
@@ -112,6 +114,9 @@ def run_generation(params):
                 steps=params["steps"],
                 guidance_scale=params["guidance_scale"],
                 seed=params["seed"],
+                height=params["height"],
+                width=params["width"],
+                device=params["device"],
                 progress_callback=progress_cb
             )
         else:  # image-to-video
@@ -121,6 +126,9 @@ def run_generation(params):
                 steps=params["steps"],
                 guidance_scale=params["guidance_scale"],
                 seed=params["seed"],
+                height=params["height"],
+                width=params["width"],
+                device=params["device"],
                 progress_callback=progress_cb
             )
             
@@ -163,6 +171,9 @@ def run_generation(params):
             "fps": params["fps"],
             "guidance_scale": params["guidance_scale"],
             "seed": params["seed"],
+            "width": params["width"],
+            "height": params["height"],
+            "device": params["device"],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         save_metadata(metadata_path, metadata)
@@ -194,6 +205,9 @@ async def generate_video(
     guidance_scale: float = Form(7.5),
     fps: int = Form(8),
     seed: int = Form(-1),
+    height: int = Form(512),
+    width: int = Form(512),
+    device: str = Form("mps"),
     image: Optional[UploadFile] = File(None),
     audio: Optional[UploadFile] = File(None)
 ):
@@ -213,6 +227,9 @@ async def generate_video(
         "guidance_scale": guidance_scale,
         "fps": fps,
         "seed": seed,
+        "height": height,
+        "width": width,
+        "device": device,
     }
     
     # Save uploaded voiceover audio file if present

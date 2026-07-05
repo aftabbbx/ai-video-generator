@@ -86,11 +86,11 @@ class VideoGenerator:
         pipe = pipe.to(self.device)
         
         # Disable SDPA on MPS to prevent Metal 4GB allocation crashes
-        if self.device == "mps":
-            try:
-                pipe.unet.set_default_attn_processor()
-            except Exception as e:
-                print(f"[!] Failed to set default attention processor: {e}")
+        # if self.device == "mps":
+        #     try:
+        #         pipe.unet.set_default_attn_processor()
+        #     except Exception as e:
+        #         print(f"[!] Failed to set default attention processor: {e}")
         
         # Memory-saving optimizations for M2 8GB Mac
         pipe.enable_attention_slicing()
@@ -134,11 +134,11 @@ class VideoGenerator:
         pipe = pipe.to(self.device)
         
         # Disable SDPA on MPS to prevent Metal 4GB allocation crashes
-        if self.device == "mps":
-            try:
-                pipe.unet.set_default_attn_processor()
-            except Exception as e:
-                print(f"[!] Failed to set default attention processor: {e}")
+        # if self.device == "mps":
+        #     try:
+        #         pipe.unet.set_default_attn_processor()
+        #     except Exception as e:
+        #         print(f"[!] Failed to set default attention processor: {e}")
         
         # Memory-saving optimizations for M2 8GB Mac
         pipe.enable_attention_slicing()
@@ -166,10 +166,19 @@ class VideoGenerator:
                 
         return pipe
 
-    def generate_text_to_video(self, prompt, model_id, num_frames=16, steps=20, guidance_scale=7.5, seed=None, progress_callback=None):
+    def generate_text_to_video(self, prompt, model_id, num_frames=16, steps=20, guidance_scale=7.5, seed=None, height=512, width=512, device=None, progress_callback=None):
         """
         Generates frames from a text prompt using AnimateDiff.
         """
+        if device and device != self.device:
+            print(f"[*] Switching generator device from {self.device} to {device}...")
+            self.device = device
+            self.current_t2v_pipe = None
+            self.current_t2v_model_id = None
+            self.current_svd_pipe = None
+            if self.device == "mps" and hasattr(torch, "mps"):
+                torch.mps.empty_cache()
+
         pipe = self.get_text_to_video_pipeline(model_id)
         
         generator = None
@@ -183,7 +192,9 @@ class VideoGenerator:
             "num_frames": num_frames,
             "num_inference_steps": steps,
             "guidance_scale": guidance_scale,
-            "generator": generator
+            "generator": generator,
+            "height": height,
+            "width": width,
         }
         
         # Bind the progress callback
@@ -196,16 +207,25 @@ class VideoGenerator:
         # AnimateDiff returns a list of frames
         return output.frames[0]
 
-    def generate_image_to_video(self, image_path, num_frames=14, steps=20, guidance_scale=2.5, seed=None, progress_callback=None):
+    def generate_image_to_video(self, image_path, num_frames=14, steps=20, guidance_scale=2.5, seed=None, height=512, width=512, device=None, progress_callback=None):
         """
         Generates frames from an input image using Stable Video Diffusion.
         """
+        if device and device != self.device:
+            print(f"[*] Switching generator device from {self.device} to {device}...")
+            self.device = device
+            self.current_t2v_pipe = None
+            self.current_t2v_model_id = None
+            self.current_svd_pipe = None
+            if self.device == "mps" and hasattr(torch, "mps"):
+                torch.mps.empty_cache()
+
         pipe = self.get_image_to_video_pipeline()
         
         # Load and resize image to standard SVD dimensions (1024x576 or 512x512)
         # SVD is trained on 1024x576, but 512x512 is much faster and uses far less memory
         image = Image.open(image_path).convert("RGB")
-        image = image.resize((512, 512)) # 512x512 helps fit in 8GB unified memory
+        image = image.resize((width, height)) # Resize based on selected resolution
         
         generator = None
         if seed is not None and seed >= 0:
@@ -252,6 +272,8 @@ if __name__ == "__main__":
                 steps=2,
                 guidance_scale=5.0,
                 seed=42,
+                height=256,
+                width=256,
                 progress_callback=test_callback
             )
             print(f"[+] Success! Generated {len(frames)} test frames.")
@@ -263,5 +285,7 @@ if __name__ == "__main__":
             save_thumbnail(frames, "generations/test_output.png")
             print("[+] Saved test_output.mp4 and test_output.png in generations/")
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"[!] Test generation failed: {e}")
             sys.exit(1)
