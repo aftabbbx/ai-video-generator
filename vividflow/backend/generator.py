@@ -279,7 +279,7 @@ if __name__ == "__main__":
             print(f"[+] Success! Generated {len(frames)} test frames.")
             
             # Save test video
-            from utils import save_video, save_thumbnail
+            from backend.utils import save_video, save_thumbnail
             os.makedirs("generations", exist_ok=True)
             save_video(frames, "generations/test_output.mp4", fps=4)
             save_thumbnail(frames, "generations/test_output.png")
