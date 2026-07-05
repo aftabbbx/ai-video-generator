@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VividFlow • Local AI Video Generator</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h1>VividFlow</h1>
+                    <span class="subtitle">Local AI Video Generator</span>
+                </div>
+            </div>
+            <div class="system-status">
+                <span class="status-indicator online"></span>
+                <span id="hardware-badge">Apple M2 GPU (MPS)</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-workspace">
+            
+            <!-- Left Side: Input Panel -->
+            <section class="panel control-panel glass-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-sliders"></i> Generator Setup</h2>
+                    <div class="mode-toggle">
+                        <button id="mode-t2v" class="tab-btn active" onclick="switchMode('text-to-video')">
+                            <i class="fa-solid fa-align-left"></i> Text-to-Video
+                        </button>
+                        <button id="mode-i2v" class="tab-btn" onclick="switchMode('image-to-video')">
+                            <i class="fa-solid fa-image"></i> Image-to-Video
+                        </button>
+                    </div>
+                </div>
+
+                <form id="gen-form" onsubmit="handleGenerate(event)">
+                    <!-- Text-to-Video Form Group -->
+                    <div id="group-t2v" class="form-group active-group">
+                        <label for="prompt">Text Prompt</label>
+                        <textarea id="prompt" placeholder="A futuristic cybernetic tiger running through a neon-drenched cyberpunk city alley, slow motion, detailed, masterpiece..." required></textarea>
+                        
+                        <label for="model-select">Diffusion Model</label>
+                        <div class="select-wrapper">
+                            <select id="model-select">
+                                <option value="frankjoshua/toonyou_beta6" data-name="ToonYou (SD 1.5)" selected>🎨 ToonYou (SD 1.5 Anime/Stylized)</option>
+                                <option value="emilianJR/epiCRealism" data-name="epiCRealism (SD 1.5)">📸 epiCRealism (SD 1.5 Photorealistic)</option>
+                                <option value="Lykon/DreamShaper_v8" data-name="DreamShaper v8 (SD 1.5)">✨ DreamShaper v8 (SD 1.5 Stylized/Art)</option>
+                                <option value="runwayml/stable-diffusion-v1-5" data-name="Stable Diffusion v1.5">🌀 Stable Diffusion v1.5 (Standard)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Image-to-Video Form Group -->
+                    <div id="group-i2v" class="form-group">
+                        <label>Starting Avatar / Image</label>
+                        <div class="upload-area" id="upload-zone" onclick="document.getElementById('image-input').click()">
+                            <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                            <div class="upload-content" id="upload-prompt">
+                                <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                                <p class="primary-text">Drag & Drop Image Here</p>
+                                <p class="secondary-text">or click to browse from finder</p>
+                                <p class="warning-text"><i class="fa-solid fa-triangle-exclamation"></i> SVD Image-to-Video consumes ~8GB VRAM</p>
+                            </div>
+                            <div class="upload-preview-container" id="upload-preview-box" style="display: none;">
+                                <img id="upload-preview" src="#" alt="Upload Preview">
+                                <button type="button" class="remove-upload-btn" onclick="clearUploadedImage(event)">
+                                    <i class="fa-solid fa-circle-xmark"></i> Remove Image
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Voiceover Uploader (Optional) -->
+                    <div class="form-group">
+                        <label>Audio Voiceover (Optional)</label>
+                        <div class="audio-upload-area" id="audio-zone" onclick="document.getElementById('audio-input').click()">
+                            <input type="file" id="audio-input" accept="audio/*" style="display: none;" onchange="handleAudioUpload(event)">
+                            <div class="audio-upload-content" id="audio-prompt">
+                                <i class="fa-solid fa-microphone-lines audio-icon"></i>
+                                <div>
+                                    <p class="primary-text">Click or Drag Voiceover Audio</p>
+                                    <p class="secondary-text">Supports MP3, WAV, M4A</p>
+                                </div>
+                            </div>
+                            <div class="audio-preview-container" id="audio-preview-box" style="display: none;">
+                                <div class="audio-file-info">
+                                    <i class="fa-solid fa-file-audio"></i>
+                                    <span id="audio-filename">voiceover.mp3</span>
+                                </div>
+                                <button type="button" class="remove-audio-btn" onclick="clearUploadedAudio(event)">
+                                    <i class="fa-solid fa-circle-xmark"></i> Remove Audio
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parameter Section Header -->
+                    <div class="accordion-header" onclick="toggleAdvancedSettings()">
+                        <h3><i class="fa-solid fa-cog"></i> Advanced Settings</h3>
+                        <i class="fa-solid fa-chevron-down" id="advanced-chevron"></i>
+                    </div>
+
+                    <!-- Parameters Settings Grid -->
+                    <div class="advanced-settings collapsed" id="advanced-settings-box">
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="steps">Inference Steps</label>
+                                    <span id="steps-val" class="slider-badge">20</span>
+                                </div>
+                                <input type="range" id="steps" min="5" max="50" value="20" step="1" oninput="document.getElementById('steps-val').innerText = this.value">
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="guidance">Guidance Scale</label>
+                                    <span id="guidance-val" class="slider-badge">7.5</span>
+                                </div>
+                                <input type="range" id="guidance" min="1.0" max="20.0" value="7.5" step="0.5" oninput="document.getElementById('guidance-val').innerText = this.value">
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="frames">Number of Frames</label>
+                                </div>
+                                <div class="select-wrapper">
+                                    <select id="frames">
+                                        <option value="8">8 Frames (Fastest)</option>
+                                        <option value="12">12 Frames</option>
+                                        <option value="16" selected>16 Frames (Standard)</option>
+                                        <option value="24">24 Frames (Longer)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-label-row">
+                                    <label for="fps">Frame Rate (FPS)</label>
+                                    <span id="fps-val" class="slider-badge">8</span>
+                                </div>
+                                <input type="range" id="fps" min="4" max="16" value="8" step="1" oninput="document.getElementById('fps-val').innerText = this.value">
+                            </div>
+
+                            <div class="setting-item full-width">
+                                <div class="setting-label-row">
+                                    <label for="seed">Seed (reproducibility)</label>
+                                </div>
+                                <div class="seed-input-container">
+                                    <input type="number" id="seed" placeholder="Random seed (-1)" value="-1">
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('seed').value = -1">
+                                        <i class="fa-solid fa-random"></i> Random
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button type="submit" id="generate-btn" class="btn-generate">
+                        <i class="fa-solid fa-circle-play"></i> Generate Local Video
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Side: Rendering View & Gallery -->
+            <section class="main-display">
+                
+                <!-- Live Generation Status -->
+                <div class="panel rendering-panel glass-panel" id="render-panel" style="display: none;">
+                    <div class="rendering-container">
+                        <div class="loader-circle">
+                            <div class="glow-ring"></div>
+                            <div class="progress-number" id="progress-percent">0%</div>
+                            <div class="status-subtitle" id="status-text">Initializing pipeline...</div>
+                        </div>
+                        <div class="rendering-details">
+                            <h3>VividFlow Engine active</h3>
+                            <div class="rendering-stats">
+                                <div class="stat-box">
+                                    <span class="stat-label">Elapsed Time</span>
+                                    <span class="stat-value" id="elapsed-time">0.0s</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">ETA</span>
+                                    <span class="stat-value" id="eta-time">Calculating...</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">Step</span>
+                                    <span class="stat-value" id="step-count">0 / 0</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="progress-bar"></div>
+                            </div>
+                            <div class="log-ticker">
+                                <i class="fa-solid fa-terminal console-icon"></i>
+                                <span class="ticker-content" id="log-message">Awaiting next task...</span>
+                            </div>
+                            <button class="btn-cancel" onclick="resetStateAfterFailure()">
+                                <i class="fa-solid fa-rotate-left"></i> Reset Engine
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Creations Gallery -->
+                <div class="panel gallery-panel glass-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-photo-film"></i> Local Gallery</h2>
+                        <span id="gallery-count" class="badge">0 videos</span>
+                    </div>
+                    <div class="gallery-grid" id="gallery-grid">
+                        <!-- Loading skeleton state -->
+                        <div class="gallery-empty-state" id="gallery-loading">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                            <p>Loading your creation library...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Video Lightbox Popup Modal -->
+    <div id="lightbox" class="lightbox-modal">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <div class="lightbox-content glass-panel">
+            <div class="lightbox-video-container">
+                <video id="lightbox-video" controls loop autoplay></video>
+            </div>
+            <div class="lightbox-sidebar">
+                <h3 class="sidebar-title">Generation Details</h3>
+                
+                <div class="metadata-scroll-box">
+                    <div class="metadata-item">
+                        <span class="meta-label">Prompt</span>
+                        <p class="meta-value text-glow" id="meta-prompt"></p>
+                    </div>
+                    <div class="metadata-grid">
+                        <div class="metadata-item">
+                            <span class="meta-label">Model</span>
+                            <span class="meta-value" id="meta-model"></span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="meta-label">Mode</span>
+                            <span class="meta-value" id="meta-mode"></span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="meta-label">Resolution</span>
+                            <span class="meta-value">512 × 512</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="meta-label">Frames / FPS</span>
+                            <span class="meta-value" id="meta-frames-fps"></span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="meta-label">Guidance / Steps</span>
+                            <span class="meta-value" id="meta-guidance-steps"></span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="meta-label">Seed</span>
+                            <span class="meta-value code-font" id="meta-seed"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <a id="lightbox-download" href="#" download class="btn-generate text-center">
+                        <i class="fa-solid fa-download"></i> Download Video
+                    </a>
+                    <button id="lightbox-delete" class="btn-cancel w-full" onclick="deleteVideoFromLightbox()">
+                        <i class="fa-solid fa-trash-can"></i> Delete Permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script imports -->
+    <script src="app.js"></script>
+</body>
+</html>
